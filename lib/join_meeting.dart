@@ -27,6 +27,13 @@ class _JoinMeetingPageState extends State<JoinMeetingPage> {
   bool _disableJoinButton = false;
 
   @override
+  void initState() {
+    controller.text = "34O18";
+
+    super.initState();
+  }
+
+  @override
   void dispose() {
     controller.dispose();
     super.dispose();
@@ -70,7 +77,7 @@ class _JoinMeetingPageState extends State<JoinMeetingPage> {
                           enabled: !_disableJoinButton,
                           maxLength: 10,
                           decoration: InputDecoration(
-                              hintText: "#000000", labelText: "Meeting Code"),
+                              labelText: "Meeting Code"),
                         ),
                       ],
                     )),

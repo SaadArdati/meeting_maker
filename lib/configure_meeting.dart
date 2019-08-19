@@ -38,6 +38,8 @@ class _ConfigureMeetingState extends State<ConfigureMeeting> with TickerProvider
 
   double _animatingHeight = 0;
 
+  static const int maxListSize = 6;
+
   Multimap<DateTime, TimeOfDay> _whitelists = ListMultimap();
   Multimap<DateTime, TimeOfDay> _blacklists = ListMultimap();
 
@@ -109,7 +111,7 @@ class _ConfigureMeetingState extends State<ConfigureMeeting> with TickerProvider
                 children: <Widget>[
                   Padding(
                     padding: EdgeInsets.only(left: 40, right: 40, bottom: 15),
-                    child: Text("Pick the times for each day you can attend the meeting in"),
+                    child: Text("Pick the times for each day you can attend the meeting in:"),
                   ),
                   Align(
                     child: TabBar(
@@ -137,140 +139,330 @@ class _ConfigureMeetingState extends State<ConfigureMeeting> with TickerProvider
                     child: Container(
                       color: Color(0x60393e46),
                       height: 300,
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: calender.selectedDates.isEmpty
-                            ? <Widget>[]
-                            : calender.selectedDates
-                                .map(
-                                  (date) => ListView(
-                                    children: <Widget>[
-                                      Column(
+                      child: LayoutBuilder(
+                        builder: (BuildContext context, BoxConstraints constraints) {
+                          return TabBarView(
+                            controller: _tabController,
+                            children: calender.selectedDates.isEmpty
+                                ? <Widget>[]
+                                : calender.selectedDates
+                                    .map(
+                                      (date) => Column(
                                         children: <Widget>[
                                           Padding(
-                                            padding: EdgeInsets.only(top: 20),
+                                            padding: EdgeInsets.only(top: 10),
                                           ),
                                           if (!_whitelists.containsKey(date) && !_blacklists.containsKey(date))
                                             Text(
                                               "Can attend during any time of this day.",
                                               style: TextStyle(color: Colors.lightGreenAccent),
                                             ),
-                                          if (_whitelists.containsKey(date))
-                                            Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                Padding(
-                                                  padding: EdgeInsets.symmetric(horizontal: 20),
-                                                  child: Row(
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: <Widget>[
+                                              SizedBox(
+                                                width: constraints.maxWidth / 2.0,
+                                                child: Padding(
+                                                  padding: EdgeInsets.symmetric(horizontal: 10),
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.start,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
                                                     children: <Widget>[
-                                                      Text(
-                                                        "CAN",
-                                                        style: TextStyle(color: Colors.lightGreenAccent),
+                                                      if (_whitelists.containsKey(date))
+                                                        Row(
+                                                          children: <Widget>[
+                                                            Text(
+                                                              "CAN",
+                                                              style: TextStyle(color: Colors.lightGreenAccent),
+                                                            ),
+                                                            Text(" attend during:"),
+                                                          ],
+                                                        ),
+                                                      Padding(
+                                                        padding: EdgeInsets.only(bottom: 10),
                                                       ),
-                                                      Text(" attend during these times:"),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Padding(
-                                                  padding: EdgeInsets.only(bottom: 20),
-                                                ),
-                                              ]..addAll(
-                                                  _whitelists[date]
-                                                      .map(
-                                                        (timeOfDay) => Padding(
-                                                          padding: EdgeInsets.only(left: 30, right: 30, bottom: 5),
-                                                          child: FlatButton(
-                                                            color: Color(0xFFEEEEEE),
-                                                            onPressed: () {},
+                                                      Padding(
+                                                        padding: EdgeInsets.only(bottom: 10),
+                                                        child: InkWell(
+                                                          onTap: _whitelists[date].length >= maxListSize
+                                                              ? null
+                                                              : () {
+                                                                  showTimePicker(context: context, initialTime: TimeOfDay.now())
+                                                                      .then((time) {
+                                                                    if (time != null)
+                                                                      setState(() {
+                                                                        for (TimeOfDay tod in _whitelists[date]) {
+                                                                          if (tod.hour == time.hour && tod.minute == time.minute) {
+                                                                            return;
+                                                                          }
+                                                                        }
+                                                                        _whitelists.add(date, time);
+                                                                      });
+                                                                  });
+                                                                },
+                                                          child: Container(
+                                                            decoration: BoxDecoration(
+                                                                color: _whitelists[date].length >= maxListSize
+                                                                    ? Color(0xFF4f4f4f)
+                                                                    : Theme.of(context).primaryColor,
+                                                                borderRadius: BorderRadius.circular(3)),
+                                                            height: 35,
                                                             child: Row(
-                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                              mainAxisAlignment: MainAxisAlignment.start,
                                                               children: <Widget>[
-                                                                Text(
-                                                                  MaterialLocalizations.of(context).formatTimeOfDay(timeOfDay),
-                                                                  style: TextStyle(fontSize: 18, color: Colors.black),
-                                                                ),
-                                                                FlatButton(
-                                                                  shape: CircleBorder(),
-                                                                  color: Color(0x00),
-                                                                  onPressed: () {
-                                                                    setState(() {
-                                                                      _whitelists.remove(date, timeOfDay);
-                                                                    });
-                                                                  },
-                                                                  child: Icon(
-                                                                    Icons.delete_forever,
-                                                                    color: Colors.red,
+                                                                Padding(
+                                                                    padding: EdgeInsets.only(left: 5),
+                                                                    child: Icon(
+                                                                      Icons.add_circle_outline,
+                                                                      color: _whitelists[date].length >= maxListSize
+                                                                          ? Color(0xFF999999)
+                                                                          : Colors.lightGreenAccent,
+                                                                    )),
+                                                                Padding(
+                                                                  padding: EdgeInsets.only(left: 5),
+                                                                  child: Text(
+                                                                    "Whitelist Time",
+                                                                    style: TextStyle(
+                                                                        color: _whitelists[date].length >= maxListSize
+                                                                            ? Color(0xFF999999)
+                                                                            : Color(0xFFEEEEEE)),
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
                                                           ),
                                                         ),
-                                                      )
-                                                      .toList(),
+                                                      ),
+                                                    ]..add(
+                                                        Column(
+                                                          children: _whitelists[date]
+                                                              .map(
+                                                                (timeOfDay) => Padding(
+                                                                  padding: EdgeInsets.only(bottom: 5),
+                                                                  child: Container(
+                                                                    decoration: BoxDecoration(
+                                                                        gradient: LinearGradient(
+                                                                            colors: [Colors.lightGreenAccent, Colors.transparent],
+                                                                            begin: Alignment.topLeft,
+                                                                            end: Alignment.bottomRight,
+                                                                            stops: [0.3, 1.0]),
+                                                                        borderRadius: BorderRadius.circular(3)),
+                                                                    height: 30,
+                                                                    child: Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                      children: <Widget>[
+                                                                        Padding(
+                                                                          padding: EdgeInsets.only(left: 5),
+                                                                          child: Text(
+                                                                            MaterialLocalizations.of(context)
+                                                                                .formatTimeOfDay(timeOfDay),
+                                                                            style: TextStyle(color: Colors.black),
+                                                                          ),
+                                                                        ),
+                                                                        Spacer(),
+                                                                        InkWell(
+                                                                          onTap: () {
+                                                                            showTimePicker(
+                                                                                    context: context,
+                                                                                    initialTime: TimeOfDay.now())
+                                                                                .then((time) {
+                                                                              if (time != null)
+                                                                                setState(() {
+                                                                                  _whitelists.remove(date, timeOfDay);
+
+                                                                                  for (TimeOfDay tod in _whitelists[date]) {
+                                                                                    if (tod.hour == time.hour && tod.minute == time.minute) {
+                                                                                      return;
+                                                                                    }
+                                                                                  }
+                                                                                  _whitelists.add(date, time);
+                                                                                });
+                                                                            });
+                                                                          },
+                                                                          child: Icon(
+                                                                            Icons.edit,
+                                                                            color: Theme.of(context).primaryColor,
+                                                                          ),
+                                                                        ),
+                                                                        InkWell(
+                                                                          onTap: () {
+                                                                            setState(() {
+                                                                              _whitelists.remove(date, timeOfDay);
+                                                                            });
+                                                                          },
+                                                                          child: Icon(
+                                                                            Icons.delete_forever,
+                                                                            color: Colors.red,
+                                                                          ),
+                                                                        )
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              )
+                                                              .toList(),
+                                                        ),
+                                                      ),
+                                                  ),
                                                 ),
-                                            ),
-                                          Padding(
-                                            padding: EdgeInsets.only(right: 30, left: 30, top: 20),
-                                            child: RaisedButton(
-                                                onPressed: () {
-                                                  showTimePicker(context: context, initialTime: TimeOfDay.now()).then((time) {
-                                                    setState(() {
-                                                      _whitelists.add(date, time);
-                                                    });
-                                                  });
-                                                },
-                                                color: Theme.of(context).primaryColor,
-                                                child: Row(
-                                                  children: <Widget>[
-                                                    Icon(Icons.add_circle_outline),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(right: 10),
-                                                    ),
-                                                    Text("Whitelist specific time range"),
-                                                  ],
-                                                )),
+                                              ),
+                                              SizedBox(
+                                                width: constraints.maxWidth / 2.0,
+                                                child: Padding(
+                                                  padding: EdgeInsets.only(right: 10),
+                                                  child: Column(
+                                                    mainAxisAlignment: MainAxisAlignment.start,
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: <Widget>[
+                                                      if (_whitelists.containsKey(date))
+                                                        Row(
+                                                          children: <Widget>[
+                                                            Text(
+                                                              "CAN'T",
+                                                              style: TextStyle(color: Colors.redAccent),
+                                                            ),
+                                                            Text(" attend during:"),
+                                                          ],
+                                                        ),
+                                                      Padding(
+                                                        padding: EdgeInsets.only(bottom: 10),
+                                                      ),
+                                                      Padding(
+                                                        padding: EdgeInsets.only(bottom: 10),
+                                                        child: InkWell(
+                                                          onTap: _blacklists[date].length >= maxListSize
+                                                              ? null
+                                                              : () {
+                                                            showTimePicker(context: context, initialTime: TimeOfDay.now())
+                                                                .then((time) {
+                                                              if (time != null)
+                                                                setState(() {
+
+                                                                  for (TimeOfDay tod in _blacklists[date]) {
+                                                                    if (tod.hour == time.hour && tod.minute == time.minute) {
+                                                                      return;
+                                                                    }
+                                                                  }
+                                                                  _blacklists.add(date, time);
+                                                                });
+                                                            });
+                                                          },
+                                                          child: Container(
+                                                            decoration: BoxDecoration(
+                                                                color: _blacklists[date].length >= maxListSize
+                                                                    ? Color(0xFF4f4f4f)
+                                                                    : Theme.of(context).primaryColor,
+                                                                borderRadius: BorderRadius.circular(3)),
+                                                            height: 35,
+                                                            child: Row(
+                                                              mainAxisAlignment: MainAxisAlignment.start,
+                                                              children: <Widget>[
+                                                                Padding(
+                                                                    padding: EdgeInsets.only(left: 5),
+                                                                    child: Icon(
+                                                                      Icons.add_circle_outline,
+                                                                      color: _blacklists[date].length >= maxListSize
+                                                                          ? Color(0xFF999999)
+                                                                          : Colors.lightGreenAccent,
+                                                                    )),
+                                                                Padding(
+                                                                  padding: EdgeInsets.only(left: 5),
+                                                                  child: Text(
+                                                                    "Blacklist Time",
+                                                                    style: TextStyle(
+                                                                        color: _blacklists[date].length >= maxListSize
+                                                                            ? Color(0xFF999999)
+                                                                            : Color(0xFFEEEEEE)),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ]..add(
+                                                        ListView(
+                                                          shrinkWrap: true,
+                                                          children: _blacklists[date]
+                                                              .map(
+                                                                (timeOfDay) => Padding(
+                                                                  padding: EdgeInsets.only(bottom: 5),
+                                                                  child: Container(
+                                                                    decoration: BoxDecoration(
+                                                                        gradient: LinearGradient(
+                                                                            colors: [Colors.redAccent, Colors.transparent],
+                                                                            begin: Alignment.topLeft,
+                                                                            end: Alignment.bottomRight,
+                                                                            stops: [0.3, 1.0]),
+                                                                        borderRadius: BorderRadius.circular(3)),
+                                                                    height: 30,
+                                                                    child: Row(
+                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                      children: <Widget>[
+                                                                        Padding(
+                                                                          padding: EdgeInsets.only(left: 5),
+                                                                          child: Text(
+                                                                            MaterialLocalizations.of(context)
+                                                                                .formatTimeOfDay(timeOfDay),
+                                                                            style: TextStyle(color: Colors.black),
+                                                                          ),
+                                                                        ),
+                                                                        Spacer(),
+                                                                        InkWell(
+                                                                          onTap: () {
+                                                                            showTimePicker(
+                                                                                    context: context,
+                                                                                    initialTime: TimeOfDay.now())
+                                                                                .then((time) {
+                                                                              if (time != null)
+                                                                                setState(() {
+                                                                                  _blacklists.remove(date, timeOfDay);
+
+                                                                                  for (TimeOfDay tod in _blacklists[date]) {
+                                                                                    if (tod.hour == time.hour && tod.minute == time.minute) {
+                                                                                      return;
+                                                                                    }
+                                                                                  }
+                                                                                  _blacklists.add(date, time);
+                                                                                });
+                                                                            });
+                                                                          },
+                                                                          child: Icon(
+                                                                            Icons.edit,
+                                                                            color: Theme.of(context).primaryColor,
+                                                                          ),
+                                                                        ),
+                                                                        InkWell(
+                                                                          onTap: () {
+                                                                            setState(() {
+                                                                              _blacklists.remove(date, timeOfDay);
+                                                                            });
+                                                                          },
+                                                                          child: Icon(
+                                                                            Icons.delete_forever,
+                                                                            color: Colors.red,
+                                                                          ),
+                                                                        )
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              )
+                                                              .toList(),
+                                                        ),
+                                                      ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          Padding(
-                                            padding: EdgeInsets.symmetric(horizontal: 30),
-                                            child: RaisedButton(
-                                                onPressed: () {
-                                                  showTimePicker(context: context, initialTime: TimeOfDay.now()).then((time) {
-                                                    setState(() {
-                                                      _blacklists.add(date, time);
-                                                    });
-                                                  });
-                                                },
-                                                color: Theme.of(context).primaryColor,
-                                                child: Row(
-                                                  children: <Widget>[
-                                                    Icon(Icons.remove_circle_outline),
-                                                    Padding(
-                                                      padding: EdgeInsets.only(right: 10),
-                                                    ),
-                                                    Text("Blacklist specific time range"),
-                                                  ],
-                                                )),
-                                          ),
-                                          if (false)
-                                            TimePickerSpinner(
-                                              is24HourMode: false,
-                                              normalTextStyle: TextStyle(fontSize: 18),
-                                              highlightedTextStyle:
-                                                  TextStyle(fontSize: 24, color: Theme.of(context).primaryColor),
-                                              spacing: 10,
-                                              itemHeight: 40,
-                                              isForce2Digits: false,
-                                              onTimeChange: (time) {
-                                                setState(() {});
-                                              },
-                                            ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                )
-                                .toList(),
+                                    )
+                                    .toList(),
+                          );
+                        },
                       ),
                     ),
                   ),
